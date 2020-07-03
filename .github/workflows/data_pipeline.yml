@@ -1,0 +1,74 @@
+name: CI
+# this CI config is adapted from Covid19-EERAModel project
+# there is more advanced matrix version
+on: [push]
+
+jobs:
+  build_macOS_latest:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install Brew
+        run : /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+
+      - name: Install dependencies
+        run : brew update && brew install eigen poco hdf5 openssl
+        # after install hdf5@1.10  , cmake can not find the it,  brew's hdf5 version is 1.12
+
+      - name: Compile
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_CXX_STANDARD=17
+          make
+
+  build_Ubuntu_latest:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Install packages
+      run: sudo apt-get update && sudo apt-get install -y libssl-dev libpoco-dev libhdf5-dev libeigen3-dev
+      # libgsl-dev  not found
+  
+    - name: Install devtools like cppcheck
+      run: sudo apt-get install -y cppcheck clang-tidy doxygen graphviz   lcov htmldoc poppler-utils 
+
+    - name: Compile
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        make
+
+    - name: Run unit tests
+      run: |
+        for f in ./build/bin/*test*; do
+          sh -c "${f}"
+          if [ $? -eq 0 ]; then
+            echo "Unit tests completed successfully"
+            exit 0
+          else
+            echo "Unit tests failed"
+            exit 1
+          fi
+        done
+
+    # - name: Run Cpp Check with internal parser
+    #   run: |
+    #       echo "Running CppCheck on files  with internal parser"
+    #       for i in *.h examples/*.cpp tests/*.cpp; do 
+    #         if cppcheck --language=c++ --std=c++11 --error-exitcode=1 $i; then
+    #           continue
+    #         else
+    #           exit 1
+    #         fi
+    #       done
+
+  

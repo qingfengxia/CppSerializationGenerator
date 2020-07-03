@@ -1,0 +1,10 @@
+[submodule "third-party/toml11"]
+	path = third-party/toml11
+	url = https://github.com/ToruNiina/toml11.git
+	branch = master
+[submodule "third-party/xtl"]
+	path = third-party/xtl
+	url = https://github.com/xtensor-stack/xtl
+[submodule "third-party/xtensor"]
+	path = third-party/xtensor
+	url = https://github.com/xtensor-stack/xtensor
