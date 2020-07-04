@@ -1,3 +1,4 @@
+
 if(ENABLE_HDF5)
     # run command to generate _hdf5 header
     if(ENABLE_HDF5_GENERATOR)
@@ -7,20 +8,20 @@ if(ENABLE_HDF5)
         )
     endif()
 
-    add_executable(CodeGen_demo
-        CodeGen_demo.cpp
+    add_executable(codegen_demo_hdf5
+        hdf5/CodeGen_demo_hdf5.cpp
     )
     target_link_libraries(
-        CodeGen_demo
+        codegen_demo_hdf5
         ${_hdf5_libs}
     )
 
 endif()
 
 
-if(ENABLE_XTENSOR)
-    add_executable(demo_xtensor
-        demo_xtensor.cpp
-    )
+# if(ENABLE_XTENSOR)
+#     add_executable(demo_xtensor
+#         demo_xtensor.cpp
+#     )
 
-endif()
+# endif()

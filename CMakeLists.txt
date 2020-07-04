@@ -5,20 +5,20 @@ project(cpp_code_generator)
 enable_language(CXX)
 
 option(ENABLE_HDF5 "Enable HDF5 support" ON)
-option(ENABLE_HDF5_GENERATOR "Enable python genetor to gen HDF5 types" OFF)
-option(ENABLE_TOML "Enable toml configuraton file support" ON)
+#option(ENABLE_HDF5_GENERATOR "Enable python genetor to gen HDF5 types" OFF)
+option(ENABLE_TOML "Enable toml  support" ON)
+option(ENABLE_JSON "Enable json  support" ON)
+option(ENABLE_XML "Enable xml  support" ON)
+
 option(ENABLE_XTENSOR "Enable Xtensor support for multidimension array" OFF)
 option(ENABLE_EIGEN "Enable Eigen vector and matrix support" ON)
-option(ENABLE_NETWORKING "Enable RESTFUL network get and put support" OFF)
+#option(ENABLE_NETWORKING "Enable RESTFUL network get and put support" OFF)
 
 option(ENABLE_CODE_COVERAGE "Enable coverage reporting" OFF)
-option(ENABLE_TEST "use unit test module" ON)
+option(ENABLE_DEMO "use demo module" ON)
+option(ENABLE_TEST "use unit test module" OFF)
 
 ######################################################
-# it can be used by subdirectory cmakelist.txt
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
-# sal_signal.h moved to examples folder
-#include_directories("${CMAKE_CURRENT_SOURCE_DIR}/EERA_pipeline_demo")
 # for json.hpp, catch.h
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/third-party")
 # header-only library toml11 as submodule in third-party folder
@@ -46,43 +46,6 @@ if(ENABLE_CODE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 	message(STATUS "Including Code Coverage")
 	set(COVERAGE_COMPILER_FLAGS "-g -fprofile-arcs -ftest-coverage")
 	set(CMAKE_CXX_FLAGS "${COVERAGE_COMPILER_FLAGS} ${CMAKE_CXX_FLAGS}")
-endif()
-
-if(ENABLE_EIGEN)
-    find_package(Eigen3 NO_MODULE)
-    if(EIGEN3_FOUND)
-        message("found Eigen version: ${EIGEN3_VERSION}")
-        include_directories(${EIGEN3_INCLUDE_DIRS})
-        add_definitions("-DDATA_USE_EIGEN")
-    else()
-    message(" Eigen3 lib not found, optional feature will not be compiled")
-        ## may download to third-party from git
-    endif()
-endif()
-
-################################ Poco ###############################
-if(ENABLE_NETWORKING)
-    find_package(Poco REQUIRED COMPONENTS Foundation Util Net NetSSL Crypto JSON)
-    include_directories(${Poco_INCLUDE_DIRS})
-
-    if(APPLE)  #  APPLE can not find  openssl installed from brew
-    # openssl-dev must be installed, but not needed to find the package except APPLE
-    find_package(OpenSSL REQUIRED)
-    include_directories(${OPENSSL_INCLUDE_DIR})
-    message("OpenSSL include dir: ${OPENSSL_INCLUDE_DIR}")
-    message("OpenSSL libraries: ${OPENSSL_LIBRARIES}")
-    endif()
-
-    if (UNIX)
-        if(NOT APPLE) # centos, rhel7 may have problem in Poco_LIBRARIES
-            set(Poco_LIBRARIES "-lPocoNet -lPocoNetSSL -lPocoFoundation -lPocoJSON -lPocoUtil")
-            message(STATUS " manually set Poco_LIBRARIES = ${Poco_LIBRARIES}")
-            # to make it compatible with Poco_LIBRARIES of FindPoco.cmake
-        else()    # system provided Poco::JSON
-            message(STATUS "found poco by cmake: Poco_LIBRARIES = ${Poco_LIBRARIES}")
-        endif()
-    endif()
-
 endif()
 
 
@@ -135,6 +98,19 @@ if(ENABLE_HDF5)
 endif()
 
 ##############################################################
+
+if(ENABLE_EIGEN)
+    find_package(Eigen3 NO_MODULE)
+    if(EIGEN3_FOUND)
+        message("found Eigen version: ${EIGEN3_VERSION}")
+        include_directories(${EIGEN3_INCLUDE_DIRS})
+        add_definitions("-DDATA_USE_EIGEN")
+    else()
+    message(" Eigen3 lib not found, optional feature will not be compiled")
+        ## may download to third-party from git
+    endif()
+endif()
+
 # the sequence of include_directories() and add_subdirectory() is crucial
 if(ENABLE_XTENSOR)
     #if not exist, download by git submodule
@@ -159,12 +135,36 @@ if(ENABLE_XTENSOR)
 
 endif()
 
-if(ENABLE_HDF5_GENERATOR)
+if(ENABLE_TOML)
+    if( NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third-party/toml11")
+    execute_process(
+        COMMAND git submodule add https://github.com/ToruNiina/toml11
+        WORKING_DIRECTORY {PROJECT_SOURCE_DIR}/third-party
+    )
+    endif()
+endif()
+
+# either use the download single header or download the latest by git submodule
+if(ENABLE_JSON  AND NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third-party/json.hpp")
+    if( NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third-party/json")
+    execute_process(
+        COMMAND git submodule add https://github.com/nlohmann/json/
+        WORKING_DIRECTORY {PROJECT_SOURCE_DIR}/third-party
+    )
+    endif()
+    include_directories("${CMAKE_CURRENT_SOURCE_DIR}/third-party/json/single_include/nlohmann")
+endif()
+
+if(ENABLE_HDF5)
+    include_directories("${CMAKE_CURRENT_SOURCE_DIR}/hdf5")
     add_definitions("-DDATA_USE_HDF5_GENERATOR")
-    add_subdirectory("demo")
     # run command to generate some code
 endif()
 
+if(ENABLE_DEMO)
+    include_directories("${CMAKE_CURRENT_SOURCE_DIR}/demo")  # shared header files for demo
+    add_subdirectory("demo")
+endif()
 
 if(ENABLE_TEST)
     add_subdirectory(tests)  # disable it since there is compiling error
