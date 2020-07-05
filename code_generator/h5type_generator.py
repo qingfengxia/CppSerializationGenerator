@@ -159,13 +159,21 @@ class hdf5_generator(code_generator):
         # H5::StrType(H5::PredType::C_S1, H5T_VARIABLE)) to write char* string_array[],
         # std::vector<std::string>
 
-        el_type_name = "char"
+        # el_type_name = "char"
+        # _h5type_name = f"{class_name}_{field.spelling}_h5type"
+        # el_h5type_name = f"TO_H5T({el_type_name})"
+        # vl_field_name = f"{field.spelling}_hvl"
+        # offset_str = f"HOFFSET({class_name}, {vl_field_name})"
+        # _template = f"""
+        # auto {_h5type_name} = H5::VarLenType({el_h5type_name});
+        # {self.get_h5type(class_name)}.insertMember(\"{field.spelling}\",
+        #     {offset_str}, {_h5type_name});"""
+
         _h5type_name = f"{class_name}_{field.spelling}_h5type"
-        el_h5type_name = f"TO_H5T({el_type_name})"
-        vl_field_name = f"{field.spelling}_hvl"
+        vl_field_name = f"{field.spelling}_cstr"
         offset_str = f"HOFFSET({class_name}, {vl_field_name})"
         _template = f"""
-        auto {_h5type_name} = H5::VarLenType({el_h5type_name});
+        auto {_h5type_name} = H5::StrType(H5::PredType::C_S1, H5T_VARIABLE);
         {self.get_h5type(class_name)}.insertMember(\"{field.spelling}\", 
             {offset_str}, {_h5type_name});"""
 
@@ -293,26 +301,30 @@ class hdf5_generator(code_generator):
         # copy into a derived class with extra hvl_t field
         class_name = cls.spelling
         ext_class_name = class_name + "_hvl"
-        vl = "\n".join([f"hvl_t {k}_hvl;" for k in vl_fields.keys()])
+        vl = []
         ctor = []
         for k, vtype in vl_fields.items():
             if vtype == "std::vector":
                 ctor.append(f"{k}_hvl.p = obj.{k}.data();")
                 ctor.append(f"{k}_hvl.len = obj.{k}.size();")
+                vl.append(f"hvl_t {k}_hvl;")
             if vtype == "std::string":
-                ctor.append(f"{k}_hvl.p = std::malloc(sizeof(char) * (obj.{k}.size()+1));")
-                ctor.append(f"std::strcpy((char*)({k}_hvl.p), obj.{k}.data());  // fixme: free()")
-                ctor.append(f"{k}_hvl.len = obj.{k}.size()  + 1;")
+                # ctor.append(f"{k}_hvl.p = std::malloc(sizeof(char) * (obj.{k}.size()+1));")
+                # ctor.append(f"std::strcpy((char*)({k}_hvl.p), obj.{k}.data());  // fixme: free()")
+                # ctor.append(f"{k}_hvl.len = obj.{k}.size()  + 1;")
+                ctor.append(f"{k}_cstr = obj.{k}.c_str();")
+                vl.append(f"const char* {k}_cstr;")
 
         des = []
         for k, vtype in vl_fields.items():
             field = get_field_by_name(cls, k)
             if vtype == "std::string":
-                des.append(
-                    f"""// std::string from char* and length
-                {k} = "fixme"; //  std::string({k}_hvl.p, {k}_hvl.len);
-                """
-                )
+                # des.append(
+                #     f"""// std::string from char* and length
+                # {k} = "fixme"; //  std::string({k}_hvl.p, {k}_hvl.len);
+                # """
+                # )
+                des.append(f"{k} = {k}_cstr;")
             if vtype == "std::vector":
                 el_type_name = get_template_arguments(get_code(field))[0]
                 des.append(
@@ -324,6 +336,7 @@ class hdf5_generator(code_generator):
 
         ctor_lines = "\n".join(ctor)
         des_lines = "\n".join(des)
+        vl_lines = "\n".join(vl)
 
         return f"""class {ext_class_name} : public {class_name}{{
             public:
@@ -331,7 +344,7 @@ class hdf5_generator(code_generator):
             // using {class_name}::field_name;
 
             /// extra hvl_t fields for all varlen fields of the base class
-            {vl}
+            {vl_lines}
 
             {ext_class_name} (){{  }}  // default ctor
 

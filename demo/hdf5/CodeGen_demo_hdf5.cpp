@@ -80,5 +80,5 @@ int main()
     test_h5(file);
 
     file->close();
-    std::cout << "demo completed successfully\n";
+    std::cout << "HDF5 serialization demo completed successfully\n";
 }
