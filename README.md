@@ -1,34 +1,26 @@
-# Code generator for C++ ata class, clang's python binding
+# C++ code generator for C++ data class serialization using clang's python binding
 
-Copyright Qingfeng Xia 2020
-License to be decided later
+Copyright Qingfeng Xia 2020-2021
+License: BSD 3-clause
 
-**Note on license and copyright**
+## Introduction
 
-This repo starts as a personal contribution to <https://github.com/ScottishCovidResponse/data_pipeline_api_cpp/> in the author's non-office hours, driven by personal interest. License at that time of point was BSD 3-clause, the same as all other https://github.com/ScottishCovidResponse projects. This `code_generator` was not a completed project yet, but it will be developed in the author's personal github to be some kind of usefulness.
+Class definition in C++ header is parsed by clang, and glue code will be generated automatically.
 
-
-### Install clang's python binding
-
-The python module `clang` is clang C API's official python binding.
-Install either from
-
-1. using pip `pip3 install clang`, you will also need to install `libclang-6`
-To ensure the shared lib can be found, set the path by 
-`Config.set_library_file("/usr/lib/llvm-6.0/lib/libclang.so.1")`
-in `clang_util.py`
-
-2. using linux software manager command line:  `apt install python3-clang`
-then there may be no need to `Config.set_library_file()`
+This project is not completed, as only HDF5 serialization (no deserialization) has been implemented.
 
 ## Modular design
 
 Module is selected from CMake "ENABLE_*" options
 
-### potential module to support
+### Implemented C++ class serialization file format
 
-serialization
-+ HDF5: official cpp  API "H5Cpp.h"
+HDF5: official cpp  API "H5Cpp.h"
+
+HDF5 is most complicated file format, if this format is supported, other serialization data format like json will be fairly straight-forwrard.
+
+### Potential module (serialization file format) to support
+
 + yaml: 
 + json.hpp header only C++ json: extensible to decode/encode user types
 + toml11: header only lib: https://github.com/ToruNiina/toml11#converting-a-table
@@ -42,11 +34,14 @@ A more advanced C++ lib for data table as in R Table or Pandas.DataFrame
 + [xframe, towards a C++ dataframe](https://medium.com/@johan.mabille/xframe-towards-a-c-dataframe-26e1ccde211b)
 + <https://github.com/hosseinmoein/DataFrame>
 
+### Third-party code included
+
 Some header only libraries are downloaded and copied into this repository for the moment.  `git submodule add -b master https://github.com/ToruNiina/toml11.git`
-+ json.hpp   download as a copy
-+ toml.hpp    git submodule 
-+ csv.hpp  download as a copy
-+ eigen3-hdf5.hpp  download as a copy, with modification
+
++ [json.hpp](https://github.com/nlohmann/json): MIT licensed,  download as a copy
++ toml.hpp:    git submodule 
++ csv.hpp: download as a copy
++ [eigen3-hdf5.hpp](https://github.com/garrison/eigen3-hdf5): MIT licensed, download as a copy, with modification
 
 ### Module code structure
 
@@ -81,32 +76,27 @@ In  the folder <../demo/>, there are 3 files
 
 
 ### header, class and field requirement:
-+ c-style struct/ C++ trivial-copyable data class  with public member will be saved
++ c-style struct/ C++ trivially-copyable data class  with public member will be saved
 + all classes in the input_header must be in a single namespace
 + generate header-only, but it can be split into h and cpp in the future
 field type supported
-+ all builtin scalar types like `int, double`
++ all built-in scalar types like `int, double`
 + 1D fixed-size C-style array e.g. `int[3]`
-+ std::string
++ `std::string`
 
-=== yet completed or tested ===
-+ Non-trivial C++ class with the help of the generated `serializer` function
-+ C++ class with member of `std::vector, std::array`
-+ string types:  C string `char*` and `std::string` hdf5 string type is special
+=== non-trivially-copyable class need more tests ===
+
++  `std::vector, std::array`
 + For 2D matrix, using `Eigen::Matrix HDF5_Eigen`
 
-## Future plan:
-+ generate unit test 
-+ serializer and deserializer functions
-+ only generate h5 types for a selected
-+ template class
-+ filter class by hint in comment  `@to_hdf5`
-+ QT types, which has property
-+ for private fields: inject code into original class,  or derive class to expose 
+=== yet completed or tested ===
 
-https://github.com/cool-RR/PySnooper
++ Non-trivial C++ class with the help of the generated `serializer` function
++ string types:  C string `char*` and `std::string` hdf5 string type is special
 
-### impl of Variable length member is highly challenging
+
+
+### HDF5 support for Variable length member is highly challenging
 
 https://stackoverflow.com/questions/35477590/reading-a-hdf5-dataset-with-compound-data-type-containing-multiple-sets-with-var
 
@@ -178,14 +168,28 @@ Command line tool `h5dump` is working to check h5 data structure.
 
 ## Installation
 
-This is C++ API is designed to be header-only, while dependency libraries need to be installed, see guide below. This API can be used  as a git submodule, or just copy this repo folder into specific model project, and then include this folder in the project root CMakeLists.txt.
+This is C++ API is designed to be header-only, while dependency libraries need to be installed, see guide below. This API can be used  as a git submodule, or just copy this repo folder into specific model project, and then include this folder in the project root `CMakeLists.txt`.
 
-Or git clone this repo as the sibling folder of model repo,it is just header include directionary to be sorted out in CMake
+Or git clone this repo as the sibling folder of model repo,it is just header include dictionary to be sorted out in CMake
 
 note: as git module is used, add `--recursive`when clone this repo, i.e. `git clone --recursive this_repo`. read more on using submodule: <https://www.vogella.com/tutorials/GitSubmodules/article.html>
 
+### Install clang's python binding
 
-### Install dependency on Ubuntu 18.04/20.04
+The python module `clang` is clang C API's official python binding.
+Install either from
+
+1. using pip `pip3 install clang`, you will also need to install `libclang-6`
+   To ensure the shared lib can be found, set the path by 
+   `Config.set_library_file("/usr/lib/llvm-6.0/lib/libclang.so.1")`
+   in `clang_util.py`
+
+2. using linux software manager command line:  `apt install python3-clang`
+   then there may be no need to `Config.set_library_file()`
+
+
+
+### Install HDF5 dependency on Ubuntu 18.04/20.04
 
 `sudo apt install libhdf5-dev`
 optional: 
@@ -218,3 +222,21 @@ cmake could not find OpenSSL installation, however, networking code has been tur
 Only 2 demo cpp to test out platform cmake configuration. 
 
 
+
+## Future plan:
+
++ generate unit test 
++ serializer and deserializer functions
++ only generate h5 types for a selected
++ template class
++ filter class by hint in comment  `@to_hdf5`
++ QT types, which has property meta data
++ for private fields: inject code into original class,  or derive class to expose 
+
+https://github.com/cool-RR/PySnooper
+
+
+
+## **Note on license and copyright**
+
+This repo starts as a personal trial of `code_generator` in the author's non-office hours when participating the BSD 3-clause project <https://github.com/ScottishCovidResponse/data_pipeline_api_cpp/>.  This `code_generator` was not a completed project yet, but it will be developed in the author's personal github to be some kind of usefulness.

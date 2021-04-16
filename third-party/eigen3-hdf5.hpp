@@ -1,3 +1,6 @@
+//  MIT License
+// https://github.com/garrison/eigen3-hdf5
+
 #ifndef _EIGEN3_HDF5_HPP
 #define _EIGEN3_HDF5_HPP
 
